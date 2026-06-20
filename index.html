@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>体育馆座席视线与安检动线三维图</title>
+  <link rel="stylesheet" href="./src/styles/main.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="scene-canvas"></canvas>
+
+    <div id="view-preview" class="view-preview hidden">
+      <canvas id="preview-canvas"></canvas>
+      <div class="preview-info">
+        <div class="preview-title" id="preview-title">座席视角</div>
+        <div class="preview-detail" id="preview-detail"></div>
+      </div>
+      <button class="preview-close" id="preview-close">×</button>
+    </div>
+
+    <div class="control-panel">
+      <div class="panel-header">
+        <h2>体育馆三维视图</h2>
+        <div class="scene-switcher">
+          <button class="scene-btn active" data-scene="concert">演唱会</button>
+          <button class="scene-btn" data-scene="game">比赛</button>
+          <button class="scene-btn" data-scene="family">亲子活动</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title">视图模式</div>
+        <div class="view-mode-group">
+          <button class="mode-btn active" data-mode="overview">总览</button>
+          <button class="mode-btn" data-mode="ticket">票务视角</button>
+          <button class="mode-btn" data-mode="operation">场馆运营</button>
+          <button class="mode-btn" data-mode="audience">观众服务</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title">图层控制</div>
+        <div class="layer-group">
+          <label class="layer-item">
+            <input type="checkbox" id="layer-seats" checked />
+            <span>座席</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-seat-labels" />
+            <span>座席标签</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-sight-lines" />
+            <span>视线线段</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-heatmap" />
+            <span>视线热区</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-entries" checked />
+            <span>入口</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-security" checked />
+            <span>安检口</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-channels" checked />
+            <span>通道</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-accessible" checked />
+            <span>无障碍区</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-vendors" checked />
+            <span>售卖点</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-restrooms" checked />
+            <span>卫生间</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-exits" checked />
+            <span>疏散出口</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-flow-paths" />
+            <span>人流动线</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title">分区渲染</div>
+        <div class="zone-group">
+          <label class="zone-item">
+            <input type="checkbox" class="zone-toggle" data-zone="north" checked />
+            <span class="zone-color north"></span>
+            <span>北区</span>
+          </label>
+          <label class="zone-item">
+            <input type="checkbox" class="zone-toggle" data-zone="south" checked />
+            <span class="zone-color south"></span>
+            <span>南区</span>
+          </label>
+          <label class="zone-item">
+            <input type="checkbox" class="zone-toggle" data-zone="east" checked />
+            <span class="zone-color east"></span>
+            <span>东区</span>
+          </label>
+          <label class="zone-item">
+            <input type="checkbox" class="zone-toggle" data-zone="west" checked />
+            <span class="zone-color west"></span>
+            <span>西区</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title">座席信息</div>
+        <div id="seat-info" class="seat-info">
+          <div class="info-empty">点击座席查看详情</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title">视线分析</div>
+        <div id="sight-analysis" class="sight-analysis">
+          <div class="info-empty">选择座席查看视线分析</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-panel">
+      <div class="stat-item">
+        <div class="stat-label">总座席数</div>
+        <div class="stat-value" id="stat-total-seats">12,000</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">可售座席</div>
+        <div class="stat-value" id="stat-available-seats">9,800</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">无障碍座席</div>
+        <div class="stat-value" id="stat-accessible-seats">120</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">安检口</div>
+        <div class="stat-value" id="stat-security">8</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  stadium-3d:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    container_name: stadium-3d-visualization
+    restart: unless-stopped
