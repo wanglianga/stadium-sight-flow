@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SCENE_CONFIGS } from '../config/scenes.js';
 import { getSightQualityColor, getSightQualityLabel, getSightQualityClass } from '../utils/three-utils.js';
 
 export class SightAnalysis {
@@ -10,6 +11,7 @@ export class SightAnalysis {
     this.heatmapGroup = new THREE.Group();
     
     this.currentSeat = null;
+    this.currentSceneType = 'concert';
     this.sightLinesVisible = false;
     this.heatmapVisible = false;
     
@@ -17,10 +19,45 @@ export class SightAnalysis {
     this.sceneManager.add(this.heatmapGroup);
   }
 
+  setSceneType(sceneType) {
+    this.currentSceneType = sceneType;
+  }
+
+  _getStageCenter() {
+    const config = SCENE_CONFIGS[this.currentSceneType];
+    const stagePos = config.stagePosition;
+    const stageHeight = config.stageSize.height;
+    return new THREE.Vector3(stagePos.x, stageHeight + 1, stagePos.z);
+  }
+
+  _getStageTargetPoints() {
+    const config = SCENE_CONFIGS[this.currentSceneType];
+    const stagePos = config.stagePosition;
+    const stageSize = config.stageSize;
+    const stageHeight = stageSize.height;
+    const halfWidth = stageSize.width / 2;
+    const halfDepth = stageSize.depth / 2;
+
+    return [
+      new THREE.Vector3(stagePos.x - halfWidth, stageHeight + 0.5, stagePos.z),
+      new THREE.Vector3(stagePos.x, stageHeight + 1, stagePos.z),
+      new THREE.Vector3(stagePos.x + halfWidth, stageHeight + 0.5, stagePos.z),
+      new THREE.Vector3(stagePos.x, stageHeight + 3, stagePos.z),
+      new THREE.Vector3(stagePos.x, stageHeight + 0.1, stagePos.z - halfDepth),
+      new THREE.Vector3(stagePos.x, stageHeight + 0.1, stagePos.z + halfDepth)
+    ];
+  }
+
+  _getStageAngle() {
+    const config = SCENE_CONFIGS[this.currentSceneType];
+    const stagePos = config.stagePosition;
+    return Math.atan2(stagePos.z, stagePos.x);
+  }
+
   analyzeSeat(seatData) {
     this.currentSeat = seatData;
     
-    const stageCenter = new THREE.Vector3(0, 2, -35);
+    const stageCenter = this._getStageCenter();
     const seatPos = seatData.position.clone();
     seatPos.y += 1.2;
     
@@ -75,7 +112,12 @@ export class SightAnalysis {
   }
 
   _calculateAngleFactor(seatData) {
-    const stageAngle = -Math.PI / 2;
+    const config = SCENE_CONFIGS[this.currentSceneType];
+    if (config.stageType === 'court') {
+      return 1;
+    }
+
+    const stageAngle = this._getStageAngle();
     const seatAngle = seatData.angle;
     let angleDiff = Math.abs(seatAngle - stageAngle);
     if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
@@ -97,13 +139,7 @@ export class SightAnalysis {
     const seatPos = seatData.position.clone();
     seatPos.y += 1.2;
     
-    const targetPoints = [
-      new THREE.Vector3(-15, 2, -35),
-      new THREE.Vector3(0, 2, -35),
-      new THREE.Vector3(15, 2, -35),
-      new THREE.Vector3(0, 5, -35),
-      new THREE.Vector3(0, 0, -35)
-    ];
+    const targetPoints = this._getStageTargetPoints();
     
     targetPoints.forEach(target => {
       const points = [seatPos.clone(), target.clone()];

@@ -197,6 +197,10 @@ class StadiumApp {
   setSceneType(sceneType) {
     this.currentSceneType = sceneType;
     this.stadiumBuilder.setSceneType(sceneType);
+    this.facilityBuilder.setSceneType(sceneType);
+    this.sightAnalysis.setSceneType(sceneType);
+    this.flowAnalysis.setSceneType(sceneType);
+    this.seatPreview.setSceneType(sceneType);
     this.sightAnalysis.updateForSceneChange();
     this.flowAnalysis.renderFlowPaths();
     this._updateStats();

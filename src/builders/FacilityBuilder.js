@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createTextSprite } from '../utils/three-utils.js';
-import { STADIUM_CONFIG } from '../config/scenes.js';
+import { SCENE_CONFIGS, STADIUM_CONFIG } from '../config/scenes.js';
 
 export class FacilityBuilder {
   constructor(sceneManager) {
@@ -22,6 +22,7 @@ export class FacilityBuilder {
     this.restrooms = [];
     this.exits = [];
     this.accessibleAreas = [];
+    this.currentSceneType = 'concert';
     
     this._initGroups();
   }
@@ -118,7 +119,9 @@ export class FacilityBuilder {
         name: entry.name,
         direction: entry.direction,
         position: new THREE.Vector3(x, 0, z),
-        angle: entry.angle
+        angle: entry.angle,
+        object: group,
+        label
       });
       
       label.position.set(x, 6, z);
@@ -193,7 +196,8 @@ export class FacilityBuilder {
         this.securityGates.push({
           id: `security-${gateIndex}`,
           position: new THREE.Vector3(x, 0, z),
-          angle: baseAngle
+          angle: baseAngle,
+          object: group
         });
         gateIndex++;
       }
@@ -541,7 +545,52 @@ export class FacilityBuilder {
     }
   }
 
+  setSceneType(sceneType) {
+    this.currentSceneType = sceneType;
+    this._applyEntryStrategy();
+  }
+
+  _getEntryStrategy() {
+    return SCENE_CONFIGS[this.currentSceneType]?.entryStrategy || 'all';
+  }
+
+  _getStrategyEntries() {
+    const strategy = this._getEntryStrategy();
+    if (strategy === 'south-main') {
+      return this.entries.filter(entry => entry.direction === 'south');
+    }
+    return this.entries;
+  }
+
+  _getStrategySecurityGates() {
+    const strategy = this._getEntryStrategy();
+    if (strategy === 'south-main') {
+      const entries = this._getStrategyEntries();
+      return this.securityGates.filter(gate =>
+        entries.some(entry => gate.position.distanceTo(entry.position) < 25)
+      );
+    }
+    return this.securityGates;
+  }
+
+  _applyEntryStrategy() {
+    const allowedEntryIds = new Set(this._getStrategyEntries().map(entry => entry.id));
+    const allowedGateIds = new Set(this._getStrategySecurityGates().map(gate => gate.id));
+
+    this.entries.forEach(entry => {
+      const visible = allowedEntryIds.has(entry.id);
+      entry.object.visible = visible;
+      if (entry.label) {
+        entry.label.visible = visible;
+      }
+    });
+
+    this.securityGates.forEach(gate => {
+      gate.object.visible = allowedGateIds.has(gate.id);
+    });
+  }
+
   getSecurityGateCount() {
-    return this.securityGates.length;
+    return this._getStrategySecurityGates().length;
   }
 }
