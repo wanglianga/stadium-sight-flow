@@ -158,6 +158,30 @@ export const OBSTRUCTION_GRADES = {
   D: { label: '严重遮挡', color: '#ef4444', description: '严重遮挡，影响核心观赛区域', factor: 0.3 }
 };
 
+export const EVACUATION_CONFIG = {
+  baseSpeed: 1.2,
+  agentSampleRate: 0.15,
+  densityThreshold: 0.6,
+  criticalThreshold: 0.85,
+  maxDensity: 1.0,
+  eventTypes: {
+    fire: { label: '火警', icon: '🔥', color: '#ef4444', speedFactor: 1.2 },
+    terror: { label: '恐怖威胁', icon: '⚠️', color: '#dc2626', speedFactor: 1.5 },
+    equipment: { label: '设备故障', icon: '⚡', color: '#f97316', speedFactor: 0.9 },
+    general: { label: '综合应急', icon: '🚨', color: '#eab308', speedFactor: 1.0 }
+  },
+  bypassExitPositions: [
+    { angle: Math.PI / 6 },
+    { angle: Math.PI / 3 },
+    { angle: 2 * Math.PI / 3 },
+    { angle: 5 * Math.PI / 6 },
+    { angle: 7 * Math.PI / 6 },
+    { angle: 4 * Math.PI / 3 },
+    { angle: 5 * Math.PI / 3 },
+    { angle: 11 * Math.PI / 6 }
+  ]
+};
+
 export const QUEUE_SIMULATION_CONFIG = {
   baseArrivalRate: 2.0,
   peakMultiplier: 3.0,

@@ -5,6 +5,7 @@ import { StadiumBuilder } from './builders/StadiumBuilder.js';
 import { FacilityBuilder } from './builders/FacilityBuilder.js';
 import { SightAnalysis } from './analysis/SightAnalysis.js';
 import { FlowAnalysis } from './analysis/FlowAnalysis.js';
+import { EvacuationSimulation } from './analysis/EvacuationSimulation.js';
 import { SeatPreview } from './ui/SeatPreview.js';
 import { UIController } from './ui/UIController.js';
 
@@ -15,6 +16,7 @@ class StadiumApp {
     this.facilityBuilder = null;
     this.sightAnalysis = null;
     this.flowAnalysis = null;
+    this.evacuation = null;
     this.seatPreview = null;
     this.uiController = null;
     
@@ -38,6 +40,7 @@ class StadiumApp {
     
     this.sightAnalysis = new SightAnalysis(this.sceneManager, this.stadiumBuilder);
     this.flowAnalysis = new FlowAnalysis(this.sceneManager, this.stadiumBuilder, this.facilityBuilder);
+    this.evacuation = new EvacuationSimulation(this.sceneManager, this.stadiumBuilder, this.facilityBuilder);
     
     const previewCanvas = document.getElementById('preview-canvas');
     previewCanvas.width = 320;
@@ -209,11 +212,12 @@ class StadiumApp {
     this.facilityBuilder.setSceneType(sceneType);
     this.sightAnalysis.setSceneType(sceneType);
     this.flowAnalysis.setSceneType(sceneType);
+    this.evacuation.setSceneType(sceneType);
     this.seatPreview.setSceneType(sceneType);
     this.sightAnalysis.updateForSceneChange();
     this.flowAnalysis.renderFlowPaths();
     this._updateStats();
-    
+
     this._deselectSeat();
   }
 
@@ -307,12 +311,18 @@ class StadiumApp {
 
   _animate() {
     const deltaTime = 0.016;
-    
+
     this.stadiumBuilder.animate(deltaTime);
     this.flowAnalysis.animate(deltaTime);
-    
+    this.evacuation.animate(deltaTime);
+
     if (this.flowAnalysis.isSimulating()) {
       this.uiController.updateQueueDisplay();
+    }
+
+    const progress = this.evacuation.getSimulationProgress();
+    if (progress.active || progress.completed) {
+      this.uiController.updateEvacDisplay();
     }
   }
 }

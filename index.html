@@ -40,6 +40,63 @@
       </div>
 
       <div class="panel-section">
+        <div class="section-title">应急疏散模拟</div>
+        <div id="evac-panel" class="evac-panel">
+          <div class="evac-event-triggers">
+            <button class="evac-trigger-btn fire" data-event="fire">🔥 火警</button>
+            <button class="evac-trigger-btn terror" data-event="terror">⚠️ 恐怖威胁</button>
+            <button class="evac-trigger-btn equipment" data-event="equipment">⚡ 设备故障</button>
+            <button class="evac-trigger-btn general" data-event="general">🚨 综合应急</button>
+          </div>
+          <div class="evac-controls">
+            <button class="evac-ctrl-btn" id="evac-stop" disabled>⏹ 停止</button>
+            <button class="evac-ctrl-btn" id="evac-reset">↻ 重置</button>
+            <span class="evac-status inactive" id="evac-status">未启动</span>
+          </div>
+
+          <div class="evac-progress-section" id="evac-progress-section" style="display:none;">
+            <div class="evac-progress-bar-container">
+              <div class="evac-progress-bar" id="evac-progress-bar" style="width:0%"></div>
+            </div>
+            <div class="evac-progress-stats">
+              <span id="evac-evacuated">已疏散: 0</span>
+              <span id="evac-remaining">剩余: 0</span>
+              <span id="evac-time">用时: 0s</span>
+            </div>
+          </div>
+
+          <div class="evac-exit-section" id="evac-exit-section" style="display:none;">
+            <div class="evac-sub-title">出口实时状态</div>
+            <div id="evac-exit-info" class="evac-exit-info"></div>
+          </div>
+
+          <div class="evac-bottleneck-section" id="evac-bottleneck-section" style="display:none;">
+            <div class="evac-sub-title">瓶颈预警与建议</div>
+            <div id="evac-bottleneck-info" class="evac-bottleneck-info"></div>
+          </div>
+
+          <div class="evac-strategy-section" id="evac-strategy-section" style="display:none;">
+            <div class="evac-sub-title">疏散策略调整</div>
+            <div class="evac-strategy-actions">
+              <button class="evac-action-btn" id="evac-open-bypass">🔓 开启备用出口</button>
+              <button class="evac-action-btn" id="evac-adjust-gate">🔄 调整闸机方向</button>
+              <button class="evac-action-btn" id="evac-guide-accessible">♿ 引导至无障碍通道</button>
+            </div>
+            <button class="evac-snapshot-btn" id="evac-snapshot">📷 记录当前策略快照</button>
+            <div id="evac-strategy-comparison" class="evac-strategy-comparison" style="display:none;">
+              <div class="evac-sub-title">策略对比</div>
+              <canvas id="evac-curve-canvas" width="280" height="160"></canvas>
+              <div id="evac-strategy-legend" class="evac-strategy-legend"></div>
+            </div>
+          </div>
+
+          <div class="evac-report-section" id="evac-report-section" style="display:none;">
+            <button class="evac-report-btn" id="evac-show-report">📊 查看疏散报告</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
         <div class="section-title">图层控制</div>
         <div class="layer-group">
           <label class="layer-item">
@@ -176,7 +233,12 @@
               <button class="operator-btn" id="remove-volunteer">- 移除志愿者</button>
               <div class="operator-info" id="volunteer-info">当前志愿者: 0人</div>
             </div>
-            <div class="operator-info" id="fence-info">当前围栏: 0处</div>
+            <div class="operator-controls">
+              <button class="operator-btn" id="add-fence">+ 添加围栏</button>
+              <button class="operator-btn" id="move-fence">↔ 移动围栏</button>
+              <button class="operator-btn" id="remove-fence">- 移除围栏</button>
+              <div class="operator-info" id="fence-info">当前围栏: 0处</div>
+            </div>
           </div>
         </div>
       </div>
@@ -201,6 +263,25 @@
       </div>
     </div>
   </div>
+
+    </div>
+
+    <div id="evac-report-modal" class="evac-report-modal" style="display:none;">
+      <div class="evac-report-content">
+        <div class="evac-report-header">
+          <h3>应急疏散报告</h3>
+          <button class="evac-report-close" id="evac-report-close">×</button>
+        </div>
+        <div id="evac-report-body" class="evac-report-body"></div>
+      </div>
+    </div>
+
+    <div id="evac-alert-overlay" class="evac-alert-overlay" style="display:none;">
+      <div class="evac-alert-content">
+        <div class="evac-alert-icon" id="evac-alert-icon">🚨</div>
+        <div class="evac-alert-text" id="evac-alert-text">应急疏散已启动</div>
+      </div>
+    </div>
 
   <script type="module" src="./src/main.js"></script>
 </body>

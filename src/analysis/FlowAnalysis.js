@@ -12,7 +12,8 @@ export class FlowAnalysis {
     this.flowParticlesGroup = new THREE.Group();
     this.heatZonesGroup = new THREE.Group();
     this.flowLinesGroup = new THREE.Group();
-    this.operatorsGroup = new THREE.Group();
+    this.volunteersGroup = new THREE.Group();
+    this.fencesGroup = new THREE.Group();
 
     this.flowPathsVisible = false;
     this.heatZonesVisible = false;
@@ -32,7 +33,8 @@ export class FlowAnalysis {
     this.sceneManager.add(this.flowParticlesGroup);
     this.sceneManager.add(this.heatZonesGroup);
     this.sceneManager.add(this.flowLinesGroup);
-    this.sceneManager.add(this.operatorsGroup);
+    this.sceneManager.add(this.volunteersGroup);
+    this.sceneManager.add(this.fencesGroup);
     
     this._initGateStates();
     this._initQueueData();
@@ -200,13 +202,28 @@ export class FlowAnalysis {
     }
   }
 
-  removeFence(fenceId) {
-    this.fencePositions = this.fencePositions.filter(f => f.id !== fenceId);
-    this._renderFences();
-    this._redistributeQueues();
-    if (this.heatZonesVisible) {
-      this.renderHeatZones();
+  moveFence(fenceId, newStart, newEnd) {
+    const fence = this.fencePositions.find(f => f.id === fenceId);
+    if (fence) {
+      if (newStart) fence.start = newStart.clone();
+      if (newEnd) fence.end = newEnd.clone();
+      this._renderFences();
+      this._redistributeQueues();
+      if (this.heatZonesVisible) {
+        this.renderHeatZones();
+      }
+      if (this.flowPathsVisible) {
+        this.renderFlowPaths();
+      }
     }
+  }
+
+  getVolunteerPositions() {
+    return this.volunteerPositions;
+  }
+
+  getFencePositions() {
+    return this.fencePositions;
   }
 
   _updateGateVisual(gateId) {
@@ -234,6 +251,28 @@ export class FlowAnalysis {
     });
   }
 
+  _distPointToSegment(point, segStart, segEnd) {
+    const ab = new THREE.Vector3().subVectors(segEnd, segStart);
+    const ap = new THREE.Vector3().subVectors(point, segStart);
+    const t = Math.max(0, Math.min(1, ap.dot(ab) / ab.dot(ab)));
+    const projection = new THREE.Vector3().addVectors(segStart, ab.multiplyScalar(t));
+    return point.distanceTo(projection);
+  }
+
+  _countBlockingFences(start, end) {
+    let count = 0;
+    const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+    this.fencePositions.forEach(fence => {
+      const distToStart = this._distPointToSegment(start, fence.start, fence.end);
+      const distToEnd = this._distPointToSegment(end, fence.start, fence.end);
+      const distToMid = this._distPointToSegment(mid, fence.start, fence.end);
+      if (distToStart < 8 || distToEnd < 8 || distToMid < 8) {
+        count++;
+      }
+    });
+    return count;
+  }
+
   _redistributeQueues() {
     const openGates = this.queueData.gates.filter(g => g.open);
     const totalPeople = this.queueData.entries.reduce((sum, e) => sum + e.queueLength, 0);
@@ -252,12 +291,20 @@ export class FlowAnalysis {
       const gateCapacity = nearbyOpenGates.reduce((sum, gate) => {
         let capacity = 1 / gate.processingTime;
         if (gate.accessible) capacity *= 0.7;
+        const blockingFences = this._countBlockingFences(entry.position, gate.position);
+        const fencePenalty = 1 - blockingFences * QUEUE_SIMULATION_CONFIG.fenceRedirectFactor;
+        capacity *= Math.max(0.2, fencePenalty);
         return sum + capacity;
       }, 0);
       
       nearbyOpenGates.forEach(gate => {
         let capacity = 1 / gate.processingTime;
         if (gate.accessible) capacity *= 0.7;
+        
+        const blockingFences = this._countBlockingFences(entry.position, gate.position);
+        const fencePenalty = 1 - blockingFences * QUEUE_SIMULATION_CONFIG.fenceRedirectFactor;
+        capacity *= Math.max(0.2, fencePenalty);
+        
         const proportion = capacity / gateCapacity;
         gate.queueLength = Math.floor(entry.queueLength * proportion / nearbyOpenGates.length * gatesPerEntry);
       });
@@ -403,13 +450,21 @@ export class FlowAnalysis {
       nearbyGates.forEach(gate => {
         const intensity = Math.min(1, (entry.queueLength + gate.queueLength) / 80);
         
-        const points = [];
         const start = entry.position.clone();
         start.y = 0.3;
         const end = gate.position.clone();
         end.y = 0.3;
-        const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+        
+        let mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
         mid.y = 0.3;
+        
+        const blockingFences = this._countBlockingFences(start, end);
+        if (blockingFences > 0) {
+          const dir = new THREE.Vector3().subVectors(end, start);
+          const perp = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+          const offset = Math.min(8, blockingFences * 4);
+          mid.add(perp.multiplyScalar(offset));
+        }
         
         const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
         const curvePoints = curve.getPoints(30);
@@ -434,11 +489,11 @@ export class FlowAnalysis {
   }
 
   _renderVolunteers() {
-    while (this.operatorsGroup.children.length > 0) {
-      const child = this.operatorsGroup.children[0];
+    while (this.volunteersGroup.children.length > 0) {
+      const child = this.volunteersGroup.children[0];
       if (child.geometry) child.geometry.dispose();
       if (child.material) child.material.dispose();
-      this.operatorsGroup.remove(child);
+      this.volunteersGroup.remove(child);
     }
     
     this.volunteerPositions.forEach(vol => {
@@ -453,7 +508,7 @@ export class FlowAnalysis {
       body.position.copy(vol.position);
       body.position.y = 0.8;
       body.castShadow = true;
-      this.operatorsGroup.add(body);
+      this.volunteersGroup.add(body);
       
       const headGeometry = new THREE.SphereGeometry(0.2, 16, 16);
       const headMaterial = new THREE.MeshStandardMaterial({
@@ -463,7 +518,7 @@ export class FlowAnalysis {
       const head = new THREE.Mesh(headGeometry, headMaterial);
       head.position.copy(vol.position);
       head.position.y = 1.8;
-      this.operatorsGroup.add(head);
+      this.volunteersGroup.add(head);
       
       const vestGeometry = new THREE.BoxGeometry(0.5, 0.4, 0.05);
       const vestMaterial = new THREE.MeshStandardMaterial({
@@ -475,18 +530,17 @@ export class FlowAnalysis {
       vest.position.copy(vol.position);
       vest.position.y = 1.1;
       vest.position.z += 0.2;
-      this.operatorsGroup.add(vest);
+      this.volunteersGroup.add(vest);
     });
   }
 
   _renderFences() {
-    this.operatorsGroup.children
-      .filter(c => c.userData.isFence)
-      .forEach(c => {
-        if (c.geometry) c.geometry.dispose();
-        if (c.material) c.material.dispose();
-        this.operatorsGroup.remove(c);
-      });
+    while (this.fencesGroup.children.length > 0) {
+      const child = this.fencesGroup.children[0];
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+      this.fencesGroup.remove(child);
+    }
     
     this.fencePositions.forEach(fence => {
       const direction = new THREE.Vector3().subVectors(fence.end, fence.start);
@@ -508,8 +562,8 @@ export class FlowAnalysis {
         const post = new THREE.Mesh(postGeometry, postMaterial);
         post.position.copy(pos);
         post.position.y = 0.6;
-        post.userData.isFence = true;
-        this.operatorsGroup.add(post);
+        post.userData.fenceId = fence.id;
+        this.fencesGroup.add(post);
       }
       
       const barGeometry = new THREE.CylinderGeometry(0.03, 0.03, length, 8);
@@ -523,13 +577,10 @@ export class FlowAnalysis {
         const bar = new THREE.Mesh(barGeometry, barMaterial);
         bar.position.lerpVectors(fence.start, fence.end, 0.5);
         bar.position.y = barY;
-        bar.rotation.z = Math.PI / 2;
-        const angle = Math.atan2(direction.z, direction.x);
-        bar.rotation.y = -angle;
-        bar.rotation.z = 0;
         bar.lookAt(new THREE.Vector3(fence.end.x, barY, fence.end.z));
-        bar.userData.isFence = true;
-        this.operatorsGroup.add(bar);
+        bar.rotateX(Math.PI / 2);
+        bar.userData.fenceId = fence.id;
+        this.fencesGroup.add(bar);
       });
     });
   }
