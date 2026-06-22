@@ -48,6 +48,7 @@ class StadiumApp {
     
     this._setupEventListeners();
     this._updateStats();
+    this._initQueueDisplay();
     
     this.sceneManager.onAnimate = () => this._animate();
     this.sceneManager.startAnimation();
@@ -58,6 +59,11 @@ class StadiumApp {
     this.sceneManager.canvas.addEventListener('mousemove', (event) => this._onCanvasMouseMove(event));
     
     this.sceneManager.canvas.style.cursor = 'grab';
+  }
+
+  _initQueueDisplay() {
+    this.uiController._updateQueueInfo();
+    this.uiController._updateSimulationStatus();
   }
 
   _onCanvasClick(event) {
@@ -121,6 +127,7 @@ class StadiumApp {
     
     const analysis = this.sightAnalysis.analyzeSeat(seatData);
     this.sightAnalysis.showSightLine(seatData);
+    this.sightAnalysis.showSightCone(seatData);
     
     this.uiController.updateSeatInfo(seatData, analysis);
     
@@ -151,6 +158,8 @@ class StadiumApp {
     }
     
     this.sightAnalysis.clearSightLines();
+    this.sightAnalysis.clearSightCone();
+    this.sightAnalysis.clearObstructionMarkers();
     this.uiController.updateSeatInfo(null, null);
     this.seatPreview.hide();
   }
@@ -254,11 +263,32 @@ class StadiumApp {
           this.sightAnalysis.showSightLine(this.selectedSeat);
         }
         break;
+      case 'sight-cone':
+        this.sightAnalysis.toggleSightCone(visible);
+        if (visible && this.selectedSeat) {
+          this.sightAnalysis.showSightCone(this.selectedSeat);
+        }
+        break;
+      case 'obstruction-markers':
+        this.sightAnalysis.toggleObstructionMarkers(visible);
+        if (visible && this.selectedSeat) {
+          const analysis = this.sightAnalysis.analyzeSeat(this.selectedSeat);
+          if (analysis.obstruction) {
+            this.sightAnalysis.showObstructionMarkers(this.selectedSeat, analysis);
+          }
+        }
+        break;
       case 'heatmap':
         this.sightAnalysis.toggleHeatmap(visible);
         break;
+      case 'obstructions':
+        this.stadiumBuilder.setObstructionsVisible(visible);
+        break;
       case 'flow-paths':
         this.flowAnalysis.toggleFlowPaths(visible);
+        break;
+      case 'heat-zones':
+        this.flowAnalysis.toggleHeatZones(visible);
         break;
       default:
         this.facilityBuilder.setLayerVisible(layer, visible);
@@ -280,6 +310,10 @@ class StadiumApp {
     
     this.stadiumBuilder.animate(deltaTime);
     this.flowAnalysis.animate(deltaTime);
+    
+    if (this.flowAnalysis.isSimulating()) {
+      this.uiController.updateQueueDisplay();
+    }
   }
 }
 

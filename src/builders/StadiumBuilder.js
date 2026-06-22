@@ -9,10 +9,12 @@ export class StadiumBuilder {
     this.seatLabelsGroup = new THREE.Group();
     this.structureGroup = new THREE.Group();
     this.stageGroup = new THREE.Group();
+    this.obstructionsGroup = new THREE.Group();
     
     this.seats = [];
     this.seatMeshes = [];
     this.zoneGroups = {};
+    this.obstructionObjects = [];
     
     this.currentSceneType = 'concert';
     this.showLabels = false;
@@ -25,6 +27,7 @@ export class StadiumBuilder {
     this.stadiumGroup.add(this.seatsGroup);
     this.stadiumGroup.add(this.seatLabelsGroup);
     this.stadiumGroup.add(this.stageGroup);
+    this.stadiumGroup.add(this.obstructionsGroup);
     this.sceneManager.add(this.stadiumGroup);
     
     Object.keys(ZONE_CONFIGS).forEach(zone => {
@@ -38,6 +41,7 @@ export class StadiumBuilder {
     this._buildSeats();
     this._buildStage();
     this._buildFloor();
+    this._buildObstructions();
     return this.stadiumGroup;
   }
 
@@ -235,6 +239,261 @@ export class StadiumBuilder {
     return row === 5 && (seat % 15 === 0 || seat % 15 === 1);
   }
 
+  _buildObstructions() {
+    this.obstructionsGroup.clear();
+    this.obstructionObjects = [];
+    
+    const config = SCENE_CONFIGS[this.currentSceneType];
+    if (!config.obstructions) return;
+    
+    const { speakerTowers, cameras, railings, screens } = config.obstructions;
+    
+    if (speakerTowers) {
+      speakerTowers.forEach(tower => {
+        this._buildSpeakerTower(tower);
+      });
+    }
+    
+    if (cameras) {
+      cameras.forEach(camera => {
+        this._buildCamera(camera);
+      });
+    }
+    
+    if (screens) {
+      screens.forEach(screen => {
+        this._buildScreen(screen);
+      });
+    }
+    
+    if (railings) {
+      this._buildRailings(railings);
+    }
+  }
+
+  _buildSpeakerTower(tower) {
+    const group = new THREE.Group();
+    
+    const baseGeometry = new THREE.BoxGeometry(tower.width, 0.5, tower.depth);
+    const baseMaterial = new THREE.MeshStandardMaterial({
+      color: 0x374151,
+      roughness: 0.7,
+      metalness: 0.3
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.y = 0.25;
+    base.castShadow = true;
+    group.add(base);
+    
+    const poleGeometry = new THREE.CylinderGeometry(0.15, 0.2, tower.height, 8);
+    const poleMaterial = new THREE.MeshStandardMaterial({
+      color: 0x4b5563,
+      roughness: 0.5,
+      metalness: 0.5
+    });
+    const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+    pole.position.y = tower.height / 2;
+    pole.castShadow = true;
+    group.add(pole);
+    
+    const speakerGeometry = new THREE.BoxGeometry(tower.width + 0.5, 1.5, tower.depth + 0.3);
+    const speakerMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1f2937,
+      roughness: 0.8,
+      metalness: 0.2
+    });
+    const speaker = new THREE.Mesh(speakerGeometry, speakerMaterial);
+    speaker.position.y = tower.height - 1;
+    speaker.castShadow = true;
+    group.add(speaker);
+    
+    const topGeometry = new THREE.BoxGeometry(tower.width + 1, 0.3, tower.depth + 0.5);
+    const topMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6b7280,
+      roughness: 0.4,
+      metalness: 0.6
+    });
+    const top = new THREE.Mesh(topGeometry, topMaterial);
+    top.position.y = tower.height;
+    group.add(top);
+    
+    group.position.set(tower.x, tower.y, tower.z);
+    this.obstructionsGroup.add(group);
+    
+    this.obstructionObjects.push({
+      type: 'speakerTower',
+      label: tower.label,
+      position: new THREE.Vector3(tower.x, tower.height / 2, tower.z),
+      boundingBox: {
+        min: new THREE.Vector3(tower.x - tower.width / 2, 0, tower.z - tower.depth / 2),
+        max: new THREE.Vector3(tower.x + tower.width / 2, tower.height, tower.z + tower.depth / 2)
+      },
+      object: group,
+      severity: 'major'
+    });
+  }
+
+  _buildCamera(camera) {
+    const group = new THREE.Group();
+    
+    const poleGeometry = new THREE.CylinderGeometry(0.05, 0.08, camera.height, 8);
+    const poleMaterial = new THREE.MeshStandardMaterial({
+      color: 0x9ca3af,
+      roughness: 0.4,
+      metalness: 0.6
+    });
+    const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+    pole.position.y = camera.height / 2;
+    group.add(pole);
+    
+    const bodyGeometry = new THREE.BoxGeometry(0.6, 0.4, 0.8);
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0x374151,
+      roughness: 0.5,
+      metalness: 0.3
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.position.y = camera.height;
+    body.castShadow = true;
+    group.add(body);
+    
+    const lensGeometry = new THREE.CylinderGeometry(camera.radius, camera.radius * 1.2, 0.5, 16);
+    const lensMaterial = new THREE.MeshStandardMaterial({
+      color: 0x111827,
+      roughness: 0.2,
+      metalness: 0.8
+    });
+    const lens = new THREE.Mesh(lensGeometry, lensMaterial);
+    lens.rotation.x = Math.PI / 2;
+    lens.position.set(0, camera.height, 0.5);
+    group.add(lens);
+    
+    const indicatorGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+    const indicatorMaterial = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const indicator = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
+    indicator.position.set(0.3, camera.height + 0.2, 0);
+    group.add(indicator);
+    
+    group.position.set(camera.x, camera.y, camera.z);
+    this.obstructionsGroup.add(group);
+    
+    this.obstructionObjects.push({
+      type: 'camera',
+      label: camera.label,
+      position: new THREE.Vector3(camera.x, camera.y + camera.height, camera.z),
+      boundingBox: {
+        min: new THREE.Vector3(camera.x - 0.5, camera.y, camera.z - 0.5),
+        max: new THREE.Vector3(camera.x + 0.5, camera.y + camera.height + 0.5, camera.z + 0.5)
+      },
+      object: group,
+      severity: 'minor'
+    });
+  }
+
+  _buildScreen(screen) {
+    const group = new THREE.Group();
+    
+    const frameGeometry = new THREE.BoxGeometry(screen.width + 0.4, screen.height + 0.4, 0.3);
+    const frameMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1f2937,
+      roughness: 0.5,
+      metalness: 0.4
+    });
+    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+    frame.position.y = screen.height / 2;
+    frame.castShadow = true;
+    group.add(frame);
+    
+    const displayGeometry = new THREE.PlaneGeometry(screen.width, screen.height);
+    const displayMaterial = new THREE.MeshBasicMaterial({
+      color: 0x1e3a5f,
+      transparent: true,
+      opacity: 0.8
+    });
+    const display = new THREE.Mesh(displayGeometry, displayMaterial);
+    display.position.set(0, screen.height / 2, 0.2);
+    group.add(display);
+    
+    const supportGeometry = new THREE.CylinderGeometry(0.2, 0.3, screen.y, 8);
+    const supportMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6b7280,
+      roughness: 0.5,
+      metalness: 0.5
+    });
+    const support = new THREE.Mesh(supportGeometry, supportMaterial);
+    support.position.y = -screen.y / 2;
+    group.add(support);
+    
+    group.position.set(screen.x, screen.y, screen.z);
+    this.obstructionsGroup.add(group);
+    
+    this.obstructionObjects.push({
+      type: 'screen',
+      label: screen.label,
+      position: new THREE.Vector3(screen.x, screen.y + screen.height / 2, screen.z),
+      boundingBox: {
+        min: new THREE.Vector3(screen.x - screen.width / 2, screen.y - screen.height / 2, screen.z - 0.3),
+        max: new THREE.Vector3(screen.x + screen.width / 2, screen.y + screen.height / 2, screen.z + 0.3)
+      },
+      object: group,
+      severity: 'moderate'
+    });
+  }
+
+  _buildRailings(railingConfig) {
+    const { innerRadius, rowHeight, riserHeight, seatDepth } = STADIUM_CONFIG;
+    const { rows, height, thickness } = railingConfig;
+    
+    Object.keys(ZONE_CONFIGS).forEach(zoneKey => {
+      const zone = ZONE_CONFIGS[zoneKey];
+      const startRad = zone.startAngle * Math.PI / 180;
+      const endRad = zone.endAngle * Math.PI / 180;
+      
+      rows.forEach(row => {
+        if (row > zone.rows) return;
+        
+        const radius = innerRadius + 2 + (row - 1) * (seatDepth + 0.3);
+        const y = (row - 1) * (rowHeight + riserHeight * 0.3);
+        
+        const curve = new THREE.EllipseCurve(0, 0, radius, radius, startRad, endRad, false);
+        const points2D = curve.getPoints(80);
+        const points3D = points2D.map(p => new THREE.Vector3(p.x, y + height, p.y));
+        
+        const geometry = new THREE.BufferGeometry().setFromPoints(points3D);
+        const material = new THREE.MeshStandardMaterial({
+          color: 0x94a3b8,
+          roughness: 0.4,
+          metalness: 0.6
+        });
+        
+        const tubeGeometry = new THREE.TubeGeometry(
+          new THREE.CatmullRomCurve3(points3D),
+          80,
+          thickness,
+          6,
+          false
+        );
+        const railing = new THREE.Mesh(tubeGeometry, material);
+        railing.castShadow = true;
+        this.obstructionsGroup.add(railing);
+        
+        this.obstructionObjects.push({
+          type: 'railing',
+          label: `栏杆 R${row}`,
+          row: row,
+          zone: zoneKey,
+          radius: radius,
+          y: y + height,
+          startAngle: startRad,
+          endAngle: endRad,
+          height: height,
+          object: railing,
+          severity: 'minor'
+        });
+      });
+    });
+  }
+
   _buildStage() {
     this.stageGroup.clear();
     const config = this._getCurrentStageConfig();
@@ -388,6 +647,7 @@ export class StadiumBuilder {
   setSceneType(sceneType) {
     this.currentSceneType = sceneType;
     this._buildStage();
+    this._buildObstructions();
     this._updateAvailableSeats();
   }
 
@@ -424,6 +684,10 @@ export class StadiumBuilder {
     this.seatLabelsGroup.visible = visible;
   }
 
+  setObstructionsVisible(visible) {
+    this.obstructionsGroup.visible = visible;
+  }
+
   getSeatCount() {
     return this.seats.filter(s => s.available).length;
   }
@@ -434,6 +698,10 @@ export class StadiumBuilder {
 
   getAccessibleSeatCount() {
     return this.seats.filter(s => s.isAccessible && s.available).length;
+  }
+
+  getObstructionObjects() {
+    return this.obstructionObjects;
   }
 
   animate(deltaTime) {

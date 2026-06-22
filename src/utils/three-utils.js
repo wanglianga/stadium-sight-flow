@@ -90,3 +90,67 @@ export function getSightQualityClass(quality) {
   if (quality >= 0.3) return 'poor';
   return 'bad';
 }
+
+export function getObstructionGrade(obstructionScore) {
+  if (obstructionScore >= 0.85) return 'A';
+  if (obstructionScore >= 0.6) return 'B';
+  if (obstructionScore >= 0.3) return 'C';
+  return 'D';
+}
+
+export function getObstructionGradeInfo(grade) {
+  const grades = {
+    A: { label: 'A级 · 无遮挡', color: '#22c55e', description: '视线完全畅通，无任何遮挡', ticketNote: '正常售票' },
+    B: { label: 'B级 · 轻微遮挡', color: '#84cc16', description: '轻微栏杆遮挡，不影响观赛体验', ticketNote: '正常售票，标注轻微遮挡' },
+    C: { label: 'C级 · 部分遮挡', color: '#eab308', description: '部分视线被音响塔/摄像机遮挡', ticketNote: '折价售票，标注部分遮挡' },
+    D: { label: 'D级 · 严重遮挡', color: '#ef4444', description: '严重遮挡，影响核心观赛区域', ticketNote: '限制售票，标注严重遮挡' }
+  };
+  return grades[grade] || grades['A'];
+}
+
+export function getQueueHeatColor(people, thresholds) {
+  if (people < thresholds.low) return '#22c55e';
+  if (people < thresholds.medium) return '#eab308';
+  if (people < thresholds.high) return '#f97316';
+  return '#ef4444';
+}
+
+export function getQueueHeatLevel(people, thresholds) {
+  if (people < thresholds.low) return 'low';
+  if (people < thresholds.medium) return 'medium';
+  if (people < thresholds.high) return 'high';
+  return 'critical';
+}
+
+export function createConeGeometry(origin, target, fovAngle, segments) {
+  const direction = new THREE.Vector3().subVectors(target, origin);
+  const distance = direction.length();
+  direction.normalize();
+  
+  const halfAngle = (fovAngle / 2) * Math.PI / 180;
+  const radius = Math.tan(halfAngle) * distance;
+  
+  const positions = [0, 0, 0];
+  const indices = [];
+  
+  for (let i = 0; i <= segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    positions.push(
+      Math.cos(angle) * radius,
+      Math.sin(angle) * radius,
+      -distance
+    );
+  }
+  
+  for (let i = 0; i < segments; i++) {
+    indices.push(0, i + 1, i + 2);
+  }
+  indices.push(0, segments + 1, 1);
+  
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  return geometry;
+}

@@ -51,12 +51,24 @@
             <span>座席标签</span>
           </label>
           <label class="layer-item">
+            <input type="checkbox" id="layer-obstructions" checked />
+            <span>遮挡物体</span>
+          </label>
+          <label class="layer-item">
             <input type="checkbox" id="layer-sight-lines" />
             <span>视线线段</span>
           </label>
           <label class="layer-item">
+            <input type="checkbox" id="layer-sight-cone" />
+            <span>视线锥</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-obstruction-markers" />
+            <span>遮挡标记</span>
+          </label>
+          <label class="layer-item">
             <input type="checkbox" id="layer-heatmap" />
-            <span>视线热区</span>
+            <span>遮挡热区</span>
           </label>
           <label class="layer-item">
             <input type="checkbox" id="layer-entries" checked />
@@ -89,6 +101,10 @@
           <label class="layer-item">
             <input type="checkbox" id="layer-flow-paths" />
             <span>人流动线</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="layer-heat-zones" />
+            <span>排队热区</span>
           </label>
         </div>
       </div>
@@ -127,9 +143,41 @@
       </div>
 
       <div class="panel-section">
-        <div class="section-title">视线分析</div>
+        <div class="section-title">视线分析与遮挡等级</div>
         <div id="sight-analysis" class="sight-analysis">
           <div class="info-empty">选择座席查看视线分析</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title">安检排队模拟</div>
+        <div id="queue-panel" class="queue-panel">
+          <div class="sim-controls">
+            <button class="sim-btn" id="sim-start">▶ 开始</button>
+            <button class="sim-btn" id="sim-stop">⏸ 暂停</button>
+            <button class="sim-btn" id="sim-reset">↻ 重置</button>
+            <span class="sim-status stopped" id="sim-status">已停止</span>
+          </div>
+          
+          <div class="queue-section">
+            <div class="queue-section-title">入口排队人数</div>
+            <div id="entry-queue-info" class="entry-queue-info"></div>
+          </div>
+          
+          <div class="queue-section">
+            <div class="queue-section-title">安检通道控制</div>
+            <div id="gate-controls" class="gate-controls"></div>
+          </div>
+          
+          <div class="queue-section">
+            <div class="queue-section-title">运营调整</div>
+            <div class="operator-controls">
+              <button class="operator-btn" id="add-volunteer">+ 添加志愿者</button>
+              <button class="operator-btn" id="remove-volunteer">- 移除志愿者</button>
+              <div class="operator-info" id="volunteer-info">当前志愿者: 0人</div>
+            </div>
+            <div class="operator-info" id="fence-info">当前围栏: 0处</div>
+          </div>
         </div>
       </div>
     </div>
